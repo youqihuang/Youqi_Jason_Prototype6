@@ -42,45 +42,73 @@ public class GridGenerator : MonoBehaviour
         }
     }
 
-    // Coroutine: Change a random letter every 5 seconds
-    IEnumerator ChangeRandomLetterEvery5Seconds()
+IEnumerator ChangeRandomLetterEvery5Seconds()
+{
+    while (true)
     {
-        while (true)
+        yield return new WaitForSeconds(5f);  // Execute every 5 seconds
+        int numChanged = Random.Range(1, 4);
+        List<GameObject> toChange = new List<GameObject>();
+        
+        for (int i = 0; i < numChanged; i++) 
         {
-            yield return new WaitForSeconds(5f);  // Execute every 5 seconds
-
             // Select a random letter tile
             int randomIndex = Random.Range(0, letterTiles.Count);
             GameObject randomLetterTile = letterTiles[randomIndex];
+            toChange.Add(randomLetterTile);
+        }
 
-            // Get the TMP_Text component from the selected tile
-            TMP_Text randomLetterText = randomLetterTile.GetComponentInChildren<TMP_Text>();
+        // Flash all selected letters at the same time
+        yield return StartCoroutine(FlashLetters(toChange));
 
-            yield return StartCoroutine(FlashLetter(randomLetterTile));
-
+        for (int i = 0; i < numChanged; i++) 
+        {
+            // Change to a new random letter
+            TMP_Text randomLetterText = toChange[i].GetComponentInChildren<TMP_Text>();
             if (randomLetterText != null)
             {
-                // Change to a new random letter
                 randomLetterText.text = letters[Random.Range(0, letters.Length)].ToString();
             }
-            soundManager.PlaySoundByName("clink");
         }
+        
+        soundManager.PlaySoundByName("clink");
     }
+}
 
-    IEnumerator FlashLetter(GameObject letterTile)
+IEnumerator FlashLetters(List<GameObject> toChange)
+{
+    List<Image> letterImages = new List<Image>();
+    List<Color> originalColors = new List<Color>();
+
+    // Prepare the letter images and their original colors
+    foreach (GameObject letterTile in toChange)
     {
         Image letterImage = letterTile.GetComponent<Image>();
-        Color originalColor = Color.white;
-
-        for (int i = 0; i < 3; i++)
+        if (letterImage != null)
         {
-            // Change to flash color
-            letterImage.color = changeColor;
-            yield return new WaitForSeconds(0.3f); // Wait for 0.3 seconds
-
-            // Revert to original color
-            letterImage.color = originalColor;
-            yield return new WaitForSeconds(0.3f); // Wait for 0.3 seconds
+            letterImages.Add(letterImage);
+            originalColors.Add(letterImage.color);
         }
     }
+
+    for (int i = 0; i < 3; i++)
+    {
+        // Flash all letters
+        foreach (Image letterImage in letterImages)
+        {
+            letterImage.color = changeColor;
+        }
+
+        yield return new WaitForSeconds(0.3f); // Wait for 0.3 seconds
+
+        // Revert to original colors
+        for (int j = 0; j < letterImages.Count; j++)
+        {
+            letterImages[j].color = originalColors[j];
+        }
+
+        yield return new WaitForSeconds(0.3f); // Wait for 0.3 seconds
+    }
+}
+
 }
